@@ -3,47 +3,106 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Hello Score</title>
-<style>
-  body {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
-    margin: 0;
-    font-family: system-ui, sans-serif;
-    background: #0f172a;
-    color: #f8fafc;
-  }
-  h1 {
-    font-size: 3rem;
-    margin-bottom: 1.5rem;
-  }
-  button {
-    font-size: 1.5rem;
-    padding: 0.75rem 2.5rem;
-    border: none;
-    border-radius: 8px;
-    background: #38bdf8;
-    color: #0f172a;
-    cursor: pointer;
-  }
-  button:active {
-    transform: scale(0.97);
-  }
-</style>
+<title>PREDATOR EYES</title>
+<meta name="description" content="해가 지기 전에 대피소로. 뒤를 돌아 붉은 눈을 찾아라.">
+<link rel="stylesheet" href="./assets/style.css">
 </head>
 <body>
-  <h1 id="score">Score: 0</h1>
-  <button id="helloBtn">Hello</button>
-  <script>
-    let score = 0;
-    const scoreEl = document.getElementById('score');
-    document.getElementById('helloBtn').addEventListener('click', () => {
-      score += 1;
-      scoreEl.textContent = `Score: ${score}`;
-    });
-  </script>
+<div id="app">
+  <div id="stage-wrap">
+    <canvas id="game" width="1280" height="720"></canvas>
+
+    <!-- ===================== 게임 중 HUD ===================== -->
+    <div class="hud" id="hud">
+      <div class="hud-top">
+        <div class="hud-block">
+          <span class="label" id="hud-stage">STAGE 1/5</span>
+          <span class="sub" id="hud-stage-name">CANYON MOUTH</span>
+        </div>
+        <div class="hud-block grow">
+          <span class="label">일몰까지 <b id="hud-sun-val">0s</b></span>
+          <div class="bar sun"><i id="bar-sun"></i></div>
+        </div>
+        <div class="hud-block right">
+          <span class="label">격퇴</span>
+          <span class="big" id="hud-repels">0</span>
+        </div>
+      </div>
+
+      <div class="hud-bottom">
+        <div class="hud-block">
+          <span class="label">대피소까지 <b id="hud-distance-val">0 m</b></span>
+          <div class="bar dist"><i id="bar-distance"></i></div>
+        </div>
+        <div class="hud-block center">
+          <span class="hint" id="hud-hint">W / ↑ 달리기 · SPACE 길게 눌러 뒤돌아보기</span>
+          <div class="bar look"><i id="bar-look"></i></div>
+          <span class="label tiny">탐색 게이지</span>
+        </div>
+        <div class="hud-block right">
+          <span class="label danger-label">위험도</span>
+          <div class="bar danger"><i id="bar-danger"></i></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== 화면들 ===================== -->
+    <div class="screens" id="screens">
+
+      <section class="screen" id="screen-title">
+        <h1 class="logo">PREDATOR<span>EYES</span></h1>
+        <p class="tagline">해가 완전히 지기 전에 협곡 끝 대피소로 달려라.<br>
+          뒤에서는 붉은 눈의 포식자가 따라온다.</p>
+        <div class="row">
+          <input id="nickname" maxlength="12" placeholder="NICKNAME" autocomplete="off" spellcheck="false">
+          <button id="btn-start" class="primary">START</button>
+        </div>
+        <div class="row small">
+          <button id="btn-how">HOW TO PLAY</button>
+          <button id="btn-ranking">RANKING</button>
+          <button id="btn-achv">ACHIEVEMENTS</button>
+          <button id="btn-mute">SOUND: ON</button>
+        </div>
+        <p class="backend" id="backend-label"></p>
+      </section>
+
+      <section class="screen hidden" id="screen-brief">
+        <span class="eyebrow">STAGE <b id="brief-stage">1</b></span>
+        <h2 id="brief-name">CANYON MOUTH</h2>
+        <ul class="brief-stats" id="brief-stats"></ul>
+        <button id="btn-brief-go" class="primary">RUN</button>
+        <p class="tiny-hint">W / ↑ 를 눌러 달리고, SPACE 를 <b>길게 누르고 있는 동안</b> 뒤를 본다. 마우스로 조준하고 클릭해서 쏜다.</p>
+      </section>
+
+      <section class="screen hidden" id="screen-clear">
+        <span class="eyebrow good">STAGE CLEAR</span>
+        <h2 id="clear-name">CANYON MOUTH</h2>
+        <ul class="brief-stats" id="clear-stats"></ul>
+        <button id="btn-next" class="primary">NEXT STAGE</button>
+      </section>
+
+      <section class="screen hidden" id="screen-over">
+        <span class="eyebrow bad" id="over-eyebrow">GAME OVER</span>
+        <h2 id="over-reason">따라잡혔다</h2>
+        <ul class="brief-stats" id="over-stats"></ul>
+        <div class="row small">
+          <button id="btn-retry" class="primary">RETRY</button>
+          <button id="btn-over-ranking">RANKING</button>
+          <button id="btn-title">TITLE</button>
+        </div>
+        <div class="unlocked" id="over-achv"></div>
+      </section>
+
+      <section class="screen hidden panel" id="screen-panel">
+        <h2 id="panel-title">RANKING</h2>
+        <div id="panel-body"></div>
+        <button id="btn-panel-close">CLOSE</button>
+      </section>
+    </div>
+
+    <div id="toast"></div>
+  </div>
+</div>
+<script type="module" src="./src/main.js"></script>
 </body>
 </html>
