@@ -3,7 +3,7 @@
 해가 완전히 지기 전에 협곡 끝 대피소까지 도망치는 1인칭 추격 생존 웹 게임.
 뒤에서는 검은 몸과 붉은 눈을 가진 포식자가 따라온다.
 
-**플레이 → https://predator-eyes.<계정 서브도메인>.workers.dev/** (첫 배포 후 실제 주소로 갱신)
+**플레이 → https://predator-eyes.yoojrdr3.workers.dev/**
 
 ---
 
