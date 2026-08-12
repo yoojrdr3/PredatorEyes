@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "predator-eyes",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-08-01",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "./public"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "predator-eyes-db",
+      "migrations_dir": "migrations"
+      // database_id는 일부러 비워둔다 — wrangler deploy가 없으면 자동으로
+      // 생성해서 연결한다 (자동 리소스 프로비저닝, wrangler 4.45+).
+    }
+  ]
+}

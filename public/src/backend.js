@@ -2,12 +2,12 @@
 //  백엔드 어댑터
 // ------------------------------------------------------------
 //  게임 코드는 이 파일이 내보내는 Backend 객체만 사용한다.
-//  지금은 브라우저 localStorage에 저장하는 로컬 구현이 들어있고,
-//  내일 Firebase를 붙일 때는 아래 5개 함수의 "속만" 바꾸면 된다.
-//  (src/backend.firebase.template.js 에 채워 넣을 뼈대를 준비해 두었다)
+//  배포 대상은 Cloudflare Workers + D1 이며, 같은 Worker가 정적 파일과
+//  /api/* 요청을 함께 처리하므로 프론트는 상대 경로로 fetch 하면 된다.
+//  (Worker 쪽 구현은 worker/index.js, 스키마는 migrations/0001_init.sql)
 //
 //  인터페이스
-//    Backend.id            : 'local' | 'firebase'
+//    Backend.id            : 'cloudflare' | 'local'
 //    Backend.online        : 온라인 여부 (UI 표시에 사용)
 //    Backend.label         : 화면에 보여줄 이름
 //    Backend.saveRun(run)                    -> Promise<void>
@@ -37,6 +37,8 @@ function writeJson(key, value) {
   }
 }
 
+// 오프라인 폴백. Worker API를 못 붙이는 로컬 개발(정적 서버로 index.html만 열 때)에서
+// 게임이 죽지 않도록 남겨둔다. 배포된 사이트에서는 CloudflareBackend가 쓰인다.
 export const LocalBackend = {
   id: 'local',
   online: false,
@@ -48,19 +50,11 @@ export const LocalBackend = {
     while (runs.length > MAX_RUNS) runs.shift();
     writeJson(KEY_RUNS, runs);
 
-    // 닉네임별 누적 프로필 갱신
     const profiles = readJson(KEY_PROFILE, {});
     const key = run.nickname.toLowerCase();
     const p = profiles[key] || {
-      nickname: run.nickname,
-      bestStage: 0,
-      cleared: false,
-      bestClearMs: null,
-      achievements: [],
-      stageBestRepels: {},
-      totalShots: 0,
-      totalHits: 0,
-      runs: 0,
+      nickname: run.nickname, bestStage: 0, cleared: false, bestClearMs: null,
+      achievements: [], stageBestRepels: {}, totalShots: 0, totalHits: 0, runs: 0,
     };
     p.nickname = run.nickname;
     p.bestStage = Math.max(p.bestStage, run.reachedStage);
@@ -71,9 +65,7 @@ export const LocalBackend = {
       p.cleared = true;
       if (p.bestClearMs == null || run.totalTimeMs < p.bestClearMs) p.bestClearMs = run.totalTimeMs;
     }
-    for (const id of run.achievements) {
-      if (!p.achievements.includes(id)) p.achievements.push(id);
-    }
+    for (const id of run.achievements) if (!p.achievements.includes(id)) p.achievements.push(id);
     for (const s of run.stages) {
       const prev = p.stageBestRepels[s.stage] || 0;
       if (s.repels > prev) p.stageBestRepels[s.stage] = s.repels;
@@ -124,6 +116,57 @@ export const LocalBackend = {
   },
 };
 
-// 지금은 로컬 구현을 그대로 내보낸다.
-// 내일 Firebase 연결 시: FirebaseBackend를 import 해서 이 한 줄만 바꾸면 된다.
-export const Backend = LocalBackend;
+async function api(path, opts) {
+  const res = await fetch(path, opts);
+  if (!res.ok) throw new Error(`${path} -> ${res.status}`);
+  return res.json();
+}
+
+export const CloudflareBackend = {
+  id: 'cloudflare',
+  online: true,
+  label: 'CLOUDFLARE D1 (온라인)',
+
+  async saveRun(run) {
+    try {
+      await api('/api/runs', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(run),
+      });
+    } catch (e) {
+      // 네트워크 문제로 기록 저장이 실패해도 게임 결과 화면은 그대로 보여준다.
+      console.warn('saveRun failed, falling back to local storage', e);
+      await LocalBackend.saveRun(run);
+    }
+  },
+
+  async topClears(limit = 20) {
+    try {
+      return await api(`/api/rankings/clears?limit=${limit}`);
+    } catch (e) {
+      console.warn('topClears failed', e);
+      return [];
+    }
+  },
+
+  async topStageRepels(stageId, limit = 10) {
+    try {
+      return await api(`/api/rankings/stage/${stageId}?limit=${limit}`);
+    } catch (e) {
+      console.warn('topStageRepels failed', e);
+      return [];
+    }
+  },
+
+  async profile(nickname) {
+    try {
+      return await api(`/api/profile/${encodeURIComponent(String(nickname || '').toLowerCase())}`);
+    } catch (e) {
+      console.warn('profile failed', e);
+      return null;
+    }
+  },
+};
+
+export const Backend = CloudflareBackend;

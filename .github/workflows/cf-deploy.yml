@@ -1,0 +1,29 @@
+name: Deploy to Cloudflare Workers
+
+on:
+  push:
+    branches: [claude/repo-permissions-check-q4jwd1]
+  workflow_dispatch:
+
+concurrency:
+  group: cf-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # 첫 배포에서 wrangler가 D1 데이터베이스를 자동으로 만들고
+      # Worker에 연결한다 (자동 리소스 프로비저닝). database_id를
+      # wrangler.jsonc에 적어둘 필요가 없다.
+      - name: Deploy Worker (+ static assets)
+        run: npx --yes wrangler@4 deploy
+
+      # 스키마는 데이터베이스가 존재해야 적용할 수 있으므로 배포 다음에 실행한다.
+      - name: Apply D1 migrations
+        run: npx --yes wrangler@4 d1 migrations apply predator-eyes-db --remote
